@@ -1,0 +1,13 @@
+table {
+    border: 2px solid red;
+}
+
+a {
+    color: green;
+    text-decoration: none;
+}
+
+ul > li a {
+    color: green;
+    font-weight: bold;
+}
