@@ -30,6 +30,10 @@
             font-size: 0.5em;
             color: darkgray;
         }
+
+        .highlight {
+            background: yellow;
+        }
     </style>
 </head>
 <body>

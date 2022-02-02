@@ -5,7 +5,7 @@ $word = $_GET['word'];
 $word_len = mb_strlen($word);
 $first_char = mb_substr($word, 0, 1);
 
-function print_td(?string $char = null, ?int $cp = null) {
+function print_td(?string $char = null, ?int $cp = null, ?bool $highlight = false) {
     if (is_null($char) && !is_null($cp)) {
         $char = mb_chr($cp);
     } elseif (is_null($cp)) {
@@ -14,7 +14,12 @@ function print_td(?string $char = null, ?int $cp = null) {
         die('missing argument');
     }
 
-    echo '<td>';
+    if ($highlight) {
+        echo '<td class="highlight">';
+    } else {
+        echo '<td>';
+    }
+
     $char_disp = $char;
     if ($char_disp == " ") $char_disp = "<i>SP</i>";
 
@@ -49,7 +54,7 @@ function print_td(?string $char = null, ?int $cp = null) {
 
             for ($i = 0; $i < 16; $i++) {
                 $cp = $i + $row_first_element;
-                print_td(null, $cp);
+                print_td(null, $cp, $first_code == $cp);
             }
             ?>
         </tr>
