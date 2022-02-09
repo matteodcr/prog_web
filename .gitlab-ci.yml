@@ -1,0 +1,11 @@
+deploy-job:
+  stage: deploy
+  when: manual
+  environment: Deploiement
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
+  script:
+    - echo "" >> "$SSH_PRIVATE_KEY"
+    - chmod 600 "$SSH_PRIVATE_KEY"
+    - ssh -o StrictHostKeyChecking=no -i "$SSH_PRIVATE_KEY" pw@edgar.bzh -- pull
