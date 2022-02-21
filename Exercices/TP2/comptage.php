@@ -1,7 +1,9 @@
 <?php
 include_once 'tp2-helpers.php';
 
-function csv_extract($filename)
+session_start();
+
+function csv_extract(string $filename)
 {
     $csv = array_map('str_getcsv', file('borneswifi.csv'));
     array_walk($csv, function (&$a) use ($csv) {
@@ -11,7 +13,7 @@ function csv_extract($filename)
     return $csv;
 }
 
-function print_csv($csv)
+function print_csv(array $csv)
 {
     echo "nombre antennes : " . count($csv) . "\n";
     foreach ($csv as $line) {
@@ -22,7 +24,7 @@ function print_csv($csv)
     }
 }
 
-function proche($csv, array $d1)
+function proche(array $csv, array $d1)
 {
     $tab = [];
     foreach ($csv as $line) {
@@ -40,7 +42,7 @@ function proche($csv, array $d1)
     return $name;
 }
 
-function n_premiers($tab, $N)
+function n_premiers(array $tab, int $N)
 {
     $n_array = [];
     for ($i = 0; $i < $N; $i++) {
@@ -49,25 +51,50 @@ function n_premiers($tab, $N)
     return $n_array;
 }
 
-function geocodage_inverse($csv)
+function geocodage_inverse(array $csv)
 {
     foreach ($csv as &$line) {
         $url = "https://api-adresse.data.gouv.fr/reverse/?lon=" . $line["lon"] . "&lat=" . $line["lat"];
-        $json = json_decode(smartcurl($url, 0), true);
+
+        // On met en cache la réponse comme ça peut prendre du temps
+        if (!isset($_SESSION[$url])) {
+            $res = smartcurl($url, 0);
+            $_SESSION[$url] = $url;
+        } else {
+            $res = $_SESSION[$url];
+        }
+
+        $json = json_decode($res, true);
         $street = $json["features"]["0"]["properties"]["label"];
         $line["adresse"] = $street;
     }
     return $csv;
 }
 
-function conversion_cell_json($csv)
+function conversion_cell_json(array $cell)
 {
-
+    return [
+        "type" => "Feature",
+        "geometry" => [
+            "type" => "Point",
+            "coordinates" => [floatval($cell['lon']), floatval($cell['lat'])],
+        ],
+        "properties" => [
+            "name" => $cell['name'],
+            "adresse" => $cell['adresse'],
+            "antenne" => $cell['ant'],
+        ],
+    ];
 }
 
-function conversion_json($csv)
+function conversion_json(array $csv)
 {
-
+    $main_array = [];
+    foreach ($csv as &$line) {
+        array_push($main_array, conversion_cell_json($line));
+    }
+    $head = ["type" => "FeatureCollection", "features" => $main_array];
+    return $head;
 }
 
 $filename = 'borneswifi.csv';
@@ -94,5 +121,5 @@ foreach ($csv as &$line) {
 }
 
 header("Content-Type: application/json");
-echo json_encode($n_csv);
+echo json_encode(conversion_json($n_csv));
 
