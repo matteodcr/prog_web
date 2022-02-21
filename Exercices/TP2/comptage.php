@@ -25,41 +25,28 @@ function print_csv($csv)
 function proche($csv, array $d1)
 {
     $tab = [];
-    echo "Voici les antennes à moins de 200m\n";
     foreach ($csv as $line) {
         $d2['lon'] = floatval($line['lon']);
         $d2['lat'] = floatval($line['lat']);
         $d['name'] = $line['name'];
         $d['distance'] = distance($d1, $d2);
-        if ($d['distance'] < 200) {
-            echo $d['name'];
-            echo "\n";
-        }
         array_push($tab, $d);
     }
 
     $name = array_column($tab, 'name');
     $distance = array_column($tab, 'distance');
-
-// Sort the data with volume descending, edition ascending
-// Add $data as the last parameter, to sort by the common key
     array_multisort($distance, $name);
-
-    echo "Voici les antennes les plus proches par ordre croissant\n";
-    foreach ($name as $line) {
-        echo "$line\n";
-    }
 
     return $name;
 }
 
 function n_premiers($tab, $N)
 {
-    echo "Voici les $N plus proches antennes \n";
+    $n_array = [];
     for ($i = 0; $i < $N; $i++) {
-        echo $tab[$i];
-        echo "\n";
+        array_push($n_array, $tab[$i]);
     }
+    return $n_array;
 }
 
 function geocodage_inverse($csv)
@@ -73,23 +60,39 @@ function geocodage_inverse($csv)
     return $csv;
 }
 
+function conversion_cell_json($csv)
+{
+
+}
+
+function conversion_json($csv)
+{
+
+}
+
 $filename = 'borneswifi.csv';
-$d1['lon'] = 5.72752;
-$d1['lat'] = 45.19102;
-if (isset($argv[1])) {
-    $N = intval($argv[1]);
-} else $N = 5;
-
-
 $csv = csv_extract($filename);
-print_csv($csv);
+$csv = geocodage_inverse($csv);
 
-// Q5
-$tab = proche($csv, $d1);
+// Q8
+$top = floatval($_GET['top']);
+$lon = floatval($_GET['lon']);
+$lat = floatval($_GET['lat']);
 
-// Q6
-n_premiers($tab, $N);
 
-// Q7
-print_csv(geocodage_inverse($csv));
+$geopoint = geopoint($lon, $lat);
+$proche = proche($csv, $geopoint);
+$array_n = n_premiers($proche, $top);
+
+$n_csv = [];
+foreach ($csv as &$line) {
+    foreach ($array_n as $name) {
+        if ($name == $line["name"]) {
+            array_push($n_csv, $line);
+        }
+    }
+}
+
+header("Content-Type: application/json");
+echo json_encode($n_csv);
 
