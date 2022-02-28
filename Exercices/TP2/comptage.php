@@ -5,7 +5,7 @@ session_start();
 
 function csv_extract(string $filename)
 {
-    $csv = array_map('str_getcsv', file('borneswifi.csv'));
+    $csv = array_map('str_getcsv', file($filename));
     array_walk($csv, function (&$a) use ($csv) {
         $a = array_combine($csv[0], $a); // clé = premiere ligne, valeur = ligne en coirs
     });
@@ -97,9 +97,41 @@ function conversion_json(array $csv)
     return $head;
 }
 
-$filename = 'borneswifi.csv';
-$csv = csv_extract($filename);
-$csv = geocodage_inverse($csv);
+function geo_json_to_csv(string $filename, string $carrier)
+{
+    $features = json_decode(file_get_contents($filename), true)["features"];
+
+    $filter = function(array $feature) use ($carrier): bool
+    {
+        return $carrier == $feature["properties"]["OPERATEUR"];
+    };
+
+    $convert_feature = function(array $feature): array
+    {
+        return [
+            "name" => $feature["properties"]["ADRES_ID"],
+            "ant" => $feature["properties"]["ANT_ADRES_LIBEL"],
+            "lon" => $feature["geometry"]["coordinates"][0],
+            "lat" => $feature["geometry"]["coordinates"][1],
+            "adresse" => $feature["properties"]["ANT_ADRES_LIBEL"],
+        ];
+    };
+
+    return array_map($convert_feature, array_filter($features, $filter));
+}
+
+if (isset($_GET["carrier"])) {
+    $carrier = $_GET["carrier"];
+    if (!in_array($carrier, ['ORA', 'FREE', 'BYG', 'SFR'])) {
+        die("Unknown carrier $carrier");
+    }
+
+    // Par soucis de simplicité, je convertis le GeoJSON en le même format que le CSV
+    $csv = geo_json_to_csv('gsm.geo.json', $carrier);
+} else {
+    $csv = csv_extract('borneswifi.csv');
+    $csv = geocodage_inverse($csv);
+}
 
 // Q8
 $top = floatval($_GET['top']);

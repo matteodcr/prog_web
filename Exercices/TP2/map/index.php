@@ -4,8 +4,9 @@ include_once '../tp2-helpers.php';
 
 define("API_ENDPOINT", "http://" . $_SERVER['HTTP_HOST'] . "/Exercices/TP2/comptage.php?");
 
-function query_api(float $lat, float $lng, int $N) {
-    return smartcurl(API_ENDPOINT . "top=$N&lat=$lat&lon=$lng", 0);
+function query_api(float $lat, float $lng, int $N, string $carrier = null) {
+    $carrier = $carrier ? "&carrier=$carrier" : "";
+    return smartcurl(API_ENDPOINT . "top=$N&lat=$lat&lon=$lng$carrier", 0);
 }
 
 $markers = [];
@@ -13,7 +14,16 @@ $markers = [];
 if (isset($_GET["latitude"]) && isset($_GET["longitude"]) && isset($_GET["max"])) {
     $lat = floatval($_GET["latitude"]);
     $lng = floatval($_GET["longitude"]);
-    $res = query_api($lat, $lng, floatval($_GET["max"]));
+
+    if (isset($_GET["b-gsm"]) ){
+        $carrier = $_GET["carrier"];
+    } else if (isset($_GET["b-wifi"])) {
+        $carrier = null;
+    } else {
+        die("No button pressed");
+    }
+
+    $res = query_api($lat, $lng, floatval($_GET["max"]), $carrier);
     $geo_json = json_decode($res, true);
 
     $markers[0] = [
@@ -116,22 +126,22 @@ if (isset($_GET["latitude"]) && isset($_GET["longitude"]) && isset($_GET["max"])
         <h1>PW : TP2</h1>
         <p>
             <label for="latitude">Longitude</label>
-            <input type="number" name="latitude" id="latitude" step="any">
+            <input type="number" name="latitude" id="latitude" step="any" value="<?= $_GET["latitude"] ?? "" ?>">
             <br>
             <label for="longitude">Longitude</label>
-            <input type="number" name="longitude" id="longitude" step="any">
+            <input type="number" name="longitude" id="longitude" step="any" value="<?= $_GET["longitude"] ?? "" ?>">
             <br>
             <button type="button" id="picker">Sélectionner sur la carte</button>
         </p>
 
         <p>
             <label for="max">Nombres de points à afficher (N)</label>
-            <input type="number" name="max" id="max" min="1" max="100" value="5">
+            <input type="number" name="max" id="max" min="1" max="100" value="<?= $_GET["max"] ?? 5 ?>">
         </p>
 
         <fieldset>
             <legend>Points d'accès Wi-Fi</legend>
-            <input type="submit" value="Rechercher des points d'accès">
+            <input type="submit" name="b-wifi" value="Rechercher des points d'accès">
         </fieldset>
 
         <fieldset>
@@ -143,7 +153,7 @@ if (isset($_GET["latitude"]) && isset($_GET["longitude"]) && isset($_GET["max"])
                 <option value="ORA">Orange</option>
                 <option value="SFR">SFR</option>
             </select>
-            <input type="submit" value="Rechercher des antennes GSM">
+            <input type="submit" name="b-gsm" value="Rechercher des antennes GSM">
         </fieldset>
     </form>
 </aside>
@@ -155,6 +165,7 @@ if (isset($_GET["latitude"]) && isset($_GET["longitude"]) && isset($_GET["max"])
     const form = document.querySelector('aside > form');
     const formLat = document.querySelector('aside > form [name=latitude]');
     const formLng = document.querySelector('aside > form [name=longitude]');
+    const formCarrier = document.querySelector('aside > form [name=carrier]');
     const picker = document.querySelector('#picker');
     const map = L.map('map').setView([45.19, 5.72], 13);
 
@@ -196,6 +207,8 @@ if (isset($_GET["latitude"]) && isset($_GET["longitude"]) && isset($_GET["max"])
         document.querySelector('#map').style.cursor = picking ? 'crosshair' : '';
         form.style.opacity = picking ? 0.5 : 1;
     }
+
+    formCarrier.value = '<?= $_GET["carrier"] ?? "" ?>';
 </script>
 </body>
 </html>
