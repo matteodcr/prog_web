@@ -41,6 +41,11 @@ function smartcurl($url, $verb) {
     curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies-pw.txt');
     curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies-pw.txt');
 
+    // Sur mon déploiement en ligne (https://pw.edgar.bzh/), j'utilise du HTTPS. Comme je fais les requêtes vers l'API
+    // locale "naïvement" avec du HTTP hard-codé, il faut au moins suivre la redirection automatique de mon VPS vers la
+    // version HTTPS.
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
     $output = curl_exec($ch);
     curl_close($ch);      
 
