@@ -37,6 +37,10 @@ function smartcurl($url, $verb) {
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
+    // Permet d'utiliser un pseudo cache qui utilise les sessions PHP pour accélérer les requêtes GeoJSON
+    curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies-pw.txt');
+    curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies-pw.txt');
+
     $output = curl_exec($ch);
     curl_close($ch);      
 
