@@ -1,6 +1,7 @@
 <?php
 
-require_once('vendor/dg/rss-php/src/Feed.php');
+require_once 'vendor/dg/rss-php/src/Feed.php';
+require_once 'episode.php';
 
 const FEED_URL = 'http://radiofrance-podcast.net/podcast09/rss_14312.xml';
 try {
@@ -9,30 +10,9 @@ try {
     die($e);
 }
 
-/**
- * Formatte une date UTC au fuseau horraire de Paris
- */
-function formatDate(int $timestamp) {
-    $date = DateTime::createFromFormat('U', $timestamp, new DateTimeZone('UTC'));
-    $date->setTimeZone(new DateTimeZone('Europe/Paris'));
-    return $date->format('d/m/y G:i');
-}
-
-/**
- * @param string $description Example: "durée : 00:05:48 - Le Journal des sciences - par : Natacha Triou - La..."
- * @return string "00:05:48"
- */
-function parseDuration(string $description) {
-    $matches = [];
-    if (preg_match('/\d{2}:\d{2}:\d{2}/', $description, $matches) == 1) {
-        return $matches[0];
-    } else {
-        return '<i>durée inconnue</i>';
-    }
-}
-
-function getMediaUrl($item) {
-    return $item->enclosure->attributes()->url;
+$episodes = [];
+foreach ($feed->item as $item) {
+    $episodes[] = new Episode($item);
 }
 
 ?>
@@ -46,6 +26,25 @@ function getMediaUrl($item) {
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="https://chr15m.github.io/DoodleCSS/doodle.css">
     <title>Podcaster</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Short+Stack&display=swap');
+
+        body {
+            font-family: 'Short Stack', cursive;
+        }
+    </style>
+    <style>
+        td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .divider {
+            padding-top: 1em;
+            font-weight: bolder;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body class="doodle">
 <h1><a href="<?= $feed->link ?>" target="_blank" title="<?= $feed->description ?>"><?= $feed->title ?></a></h1>
@@ -61,23 +60,24 @@ function getMediaUrl($item) {
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($feed->item as $item) { ?>
+    <?php $last = null; foreach ($episodes as $episode) { ?>
+        <?php if ($last == null || $last->week !== $episode->week) { ?>
+        <tr>
+            <td class="divider" colspan="5"><span>Semaine <?= $episode->week ?> / <?= $episode->year ?></span></td>
+        </tr>
+        <?php } ?>
         <tr>
             <th>
-                <a href="<?= $item->link ?>" target="_blank" title="<?= $item->description ?>"><?= $item->title ?></a>
+                <a href="<?= $episode->link ?>" target="_blank" title="<?= $episode->description ?>"><?= $episode->title ?></a>
             </th>
+            <td><?= $episode->parisDate ?></td>
+            <td><audio controls src="<?= $episode->mediaUrl ?>"></audio></td>
+            <td><?= parseDuration($episode->description) ?></td>
             <td>
-                <?= formatDate(intval($item->timestamp)) ?>
-            </td>
-            <td>
-                <audio controls src="<?= getMediaUrl($item) ?>"></audio>
-            </td>
-            <td><?= parseDuration($item->description) ?></td>
-            <td>
-                <a href="<?= getMediaUrl($item) ?>" target="_blank" download="<?= $item->title ?>.mp3">[télécharger]</a>
+                <a href="<?= $episode->mediaUrl ?>" target="_blank" download="<?= $episode->title ?>.mp3">[télécharger]</a>
             </td>
         </tr>
-    <?php } ?>
+    <?php $last = $episode; } ?>
     </tbody>
 </table>
 </body>
