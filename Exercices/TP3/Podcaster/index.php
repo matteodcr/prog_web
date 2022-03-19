@@ -15,6 +15,31 @@ foreach ($feed->item as $item) {
     $episodes[] = new Episode($item);
 }
 
+// Episodes triés chronologiquement par semaine
+// Les indices sont des identifiants générés à partir de l'année et du numéro de semaine, qui conservent l'ordre chrono.
+$episodes_by_week = [];
+
+foreach ($episodes as $episode) {
+    // Un indice unique à chaque semaine
+    $idx = $episode->year * 52 + $episode->week;
+
+    if ($episode->weekday >= 5) {
+        die("Le jour de semaine d'un épisode ne peut pas tomber un week-end");
+    }
+
+    // Si la semaine n'existe pas encore, on l'initialise
+    if (!isset($episodes_by_week[$idx])) {
+        $episodes_by_week[$idx] = array_fill(0, 5, []);
+    }
+
+    // L'indice "$episode->date->getTimestamp()" permet de trier les épisodes au sein d'une case
+    $episodes_by_week[$idx][$episode->weekday][$episode->date->getTimestamp()] = $episode;
+    // Ce n'est pas très performant de faire ça à chaque fois, mais le plus simple ici
+    ksort($episodes_by_week[$idx][$episode->weekday]);
+}
+
+krsort($episodes_by_week);
+
 ?>
 
 <!doctype html>
@@ -35,14 +60,23 @@ foreach ($feed->item as $item) {
     </style>
     <style>
         td {
+            padding: 1em;
             text-align: center;
             vertical-align: middle;
         }
 
-        .divider {
-            padding-top: 1em;
-            font-weight: bolder;
-            font-style: italic;
+        tr:nth-child(even) td:nth-child(odd), tr:nth-child(odd) td:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .podcast {
+            display: block;
+        }
+
+        .podcast:not(:last-child) {
+            margin-bottom: 1em;
+            border-bottom: 1px dashed gray;
+            padding-bottom: 1em;
         }
     </style>
 </head>
@@ -52,32 +86,29 @@ foreach ($feed->item as $item) {
     <caption>Podcasts <i><?= $feed->title ?></i></caption>
     <thead>
         <tr>
-            <th>Titre</th>
-            <th>Date</th>
-            <th>Lecteur</th>
-            <th>Durée</th>
-            <th>Media</th>
+            <th>Lundi</th>
+            <th>Mardi</th>
+            <th>Mercredi</th>
+            <th>Jeudi</th>
+            <th>Vendredi</th>
         </tr>
     </thead>
     <tbody>
-    <?php $last = null; foreach ($episodes as $episode) { ?>
-        <?php if ($last == null || $last->week !== $episode->week) { ?>
+    <?php foreach ($episodes_by_week as $week) { ?>
         <tr>
-            <td class="divider" colspan="5"><span>Semaine <?= $episode->week ?> / <?= $episode->year ?></span></td>
+            <?php foreach ($week as $day) { ?>
+                <td>
+                    <?php foreach ($day as $episode) { ?>
+                        <div class="podcast">
+                            <a href="<?= htmlspecialchars($episode->url) ?>" target="_blank" title="<?= htmlspecialchars($episode->description) ?>"><?= htmlspecialchars($episode->title) ?></a>
+                            <span>(<?= $episode->parisDate ?>)</span>
+                            <audio controls src="<?= htmlspecialchars($episode->mediaUrl) ?>"></audio>
+                        </div>
+                    <?php } ?>
+                </td>
+            <?php } ?>
         </tr>
-        <?php } ?>
-        <tr>
-            <th>
-                <a href="<?= $episode->link ?>" target="_blank" title="<?= $episode->description ?>"><?= $episode->title ?></a>
-            </th>
-            <td><?= $episode->parisDate ?></td>
-            <td><audio controls src="<?= $episode->mediaUrl ?>"></audio></td>
-            <td><?= parseDuration($episode->description) ?></td>
-            <td>
-                <a href="<?= $episode->mediaUrl ?>" target="_blank" download="<?= $episode->title ?>.mp3">[télécharger]</a>
-            </td>
-        </tr>
-    <?php $last = $episode; } ?>
+    <?php } ?>
     </tbody>
 </table>
 </body>

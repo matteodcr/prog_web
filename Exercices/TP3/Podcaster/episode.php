@@ -16,10 +16,12 @@ function parseDuration(string $description) {
 class Episode {
     public string $title;
     public string $description;
+    public string $url;
     public string $mediaUrl;
 
     public DateTime $date;
     public string $parisDate;
+    public int $weekday;
     public int $week;
     public int $year;
 
@@ -29,12 +31,14 @@ class Episode {
     function __construct($item) {
         $this->title = $item->title;
         $this->description = $item->description;
+        $this->url = $item->link;
         $this->mediaUrl = $item->enclosure->attributes()->url;
 
         $this->date = DateTime::createFromFormat('U', intval($item->timestamp), new DateTimeZone('UTC'));
         $parisDate = clone $this->date;
         $parisDate->setTimeZone(new DateTimeZone('Europe/Paris'));
-        $this->parisDate = $parisDate->format('d/m/y G:i');
+        $this->parisDate = $parisDate->format("d/m/y\u{00A0}G:i"); // Le caractère spécial est un nbsp
+        $this->weekday = intval($parisDate->format('N')) - 1;
         $this->week = intval($parisDate->format('W'));
         $this->year = intval($parisDate->format('Y'));
     }
