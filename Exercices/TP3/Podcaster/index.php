@@ -55,6 +55,8 @@ krsort($episodes);
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="https://chr15m.github.io/DoodleCSS/doodle.css">
+    <!-- Utilisé pour charger les tweets sur demande (c.f. compte rendu) -->
+    <script src="https://unpkg.com/htmx.org@1.7.0"></script>
     <title>Podcaster</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Short+Stack&display=swap');
@@ -87,10 +89,14 @@ krsort($episodes);
             border-bottom: 1px dashed gray;
             padding-bottom: 1em;
         }
+
+        .tweet-container {
+            max-width: 100%;
+        }
     </style>
 </head>
 <body class="doodle">
-<a href="?view=table">vue table</a> • <a href="?view=weeks">vue semaines</a>
+<a href="?view=table">vue table</a> • <a href="?view=weeks">vue semaines</a> • <a href="?view=weeks&twitter">vue semaines + twitter</a>
 
 <?php if (!$multipleFeeds) { ?>
     <h1>
