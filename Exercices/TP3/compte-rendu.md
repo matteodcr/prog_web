@@ -94,3 +94,42 @@ Pour convertir le podcast en mono 32kbps, la commande suivante a été utilisée
 ```
 
 Cela n'a rien d'étonnant. On divise le bitrate par 4 et le nombre de canaux par 2, soit un gain théorique de facteur 8, sauf qu'avec la compression du MP3 qui est généralement plus efficace sur des gros fichiers, le gain effectif est ici environ de facteur 4.
+
+### Q7 — Liens twitter (des embeds ici)
+
+Certains podcasts, par exemple [_Chimie ultra-froide, un sujet ultra-chaud_](https://www.franceculture.fr/emissions/la-methode-scientifique/chimie-ultra-froide-un-sujet-ultra-chaud), ont un fil Twitter associé renseigné sur la page du podcast. Ici, on lit :
+
+> Retrouvez le [thread](https://twitter.com/lamethodeFC/status/1504112565177229314?s=20&t=ilYRkNgJgm71CifgqQlNGQ) de l’émission du jour sur le fil twitter de La Méthode Scientifique.
+
+On peut imaginer effectuer une requête nous mêmes pour récupérer cette information. Par soucis de stabilité, comme la phrase ci-dessus pourrait changer de formulation, il semble raisonnable de simplement chercher un élément `<a target="_blank" rel="noopener" href="https://twitter.com/lamethodeFC/status/*">` (où `*` représente n'importe quoi).
+
+Comme charger des centaines de tweets d'un seul coup prend un temps très élevé, je me suis permis d'utiliser une bibliothèque HTML/JS, [htmx](https://htmx.org), qui ici permet de ne charger les tweets que lorsque la case du tableau intersecte le viewport. Voici le fonctionnement détaillé :
+  * Une page `twitter_thread.php?rfurl` prend en paramètre un URL de podcast Radiofrance. Il scrappe la page pour chercher un URL de tweet envoyé par @lamethodeFC et renvoie soit une page vide si rien n'est trouvé, soit une page qui contient juste un "embed" (une `<iframe>` du tweet).
+  * Grâce à la bibliothèque HTMX, il est possible très facilement, sans JavaScript, de charger des morceaux d'HTML à l'intérieur d'un élément lorsque celui-ci reçoit un évènement configuré. C'est très puissant et configurable.
+    * Dans notre cas, on utilise le code suivant :
+      ```html
+      <div
+        class="tweet-container"
+        hx-get="twitter_thread.php?rfurl=<?= htmlspecialchars(urlencode($episode->url)) ?>"
+        hx-trigger="intersect once queue:first"
+      >
+        <small><i>chargement du tweet</i></small>
+      </div>
+      ```
+      `hx-get` spécifie l'URL où se trouve le fragment d'HTML à charger
+      
+      `hx-trigger` indique qu'il faut charger le fragement lorsque l'élément `<div>` intersecte le viewport, uniquement la première fois que ça arrive, et qu'il faut charger en premier les évènements reçus en dernier (ça permet de charger en priorité ce que l'utilisateur a devant ses yeux)
+  * Le tweet se retrouve donc inclus dans les cellules du tableau lorsque celles-ci deviennent visibles, ce qui minimise le nombre de requêtes inutiles et permet à la page de charger vite, quitte à être incomplète au début
+
+Pour expérimenter avec cette fonctionnalité, il faut définit `?twitter` en query-parameter. Un lien en haut de la page permet de le faire facilement. Elle n'est implémentée que sur la vue hebdomadaire.
+
+### Q8 — Liens twitter dans le mp3
+
+D'après la spécification ID3, il y a plusieurs méthodes qui permettraient de stocker un URL de tweet dans les métadonnées d'un fichier MP3 :
+  * [Créer son propre identifiant](https://id3.org/id3v2.3.0#ID3v2_frame_overview) de "frame" (sur 4 octets). Le gros risque est d'avoir une collision de nom avec quelqu'un d'autre qui utiliserait le même nom. De plus, la majorité des logiciels n'arriveraient pas bien à décoder cette frame.
+  * Utiliser une ["user-defined text frame"](https://id3.org/id3v2.3.0#User_defined_text_information_frame), définie spécifiquement pour des extensions du format. Celle-ci prend additionnellement une description et une valeur. Une description suffisamment longue ou contenant un URL nous appartenant garantit l'absence de collision.
+  * Mieux qu'au-dessus, utiliser une ["user-defined URL link frame"](https://id3.org/id3v2.3.0#User_defined_URL_link_frame). Le fonctionnement est le même, mais la valeur doit être un URL.
+  * Utiliser une ["private frame"](https://id3.org/id3v2.3.0#Private_frame) au fonctionnement similaire aux 2 ci-dessus, mais qui encourage l'usage d'une adresse e-mail comme nom de propriété.
+  * C'est pas forcément très adapté, mais il existe aussi un frame `#WPUB Publishers official webpage` qui peut correspondre.
+
+Dans notre cas, cela requièrerait de modifier les tags ID3 des fichiers MP3, par exemple dans le lien de téléchargement qu'on fournit. Il n'y a probablement pas besoin de ré-encoder le fichier, mais il faudrait quand même les télécharger et les modifier, ce qui utilise de la bande-passante. Il est aussi probable que cela commence à poser des problèmes légaux comme il s'agit de redistribution avec modifications.
