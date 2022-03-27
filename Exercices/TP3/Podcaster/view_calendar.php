@@ -49,6 +49,15 @@ krsort($episodes_by_week);
                         <a href="<?= htmlspecialchars($episode->url) ?>" target="_blank" title="<?= htmlspecialchars($episode->description) ?>"><?= htmlspecialchars($episode->title) ?></a>
                         <span>(<?= $episode->parisDate ?>)</span>
                         <audio controls src="<?= htmlspecialchars($episode->mediaUrl) ?>"></audio>
+                        <?php if (isset($_GET['twitter'])) { ?>
+                            <div
+                                class="tweet-container"
+                                hx-get="twitter_thread.php?rfurl=<?= htmlspecialchars(urlencode($episode->url)) ?>"
+                                hx-trigger="intersect once queue:first"
+                            >
+                                <small><i>chargement du tweet</i></small>
+                            </div>
+                        <?php } ?>
                     </div>
                 <?php } ?>
             </td>

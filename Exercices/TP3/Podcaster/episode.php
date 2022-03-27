@@ -28,8 +28,10 @@ class Episode {
     /**
      * @param $item mixed Une entrée fournie par rss-php
      */
-    function __construct($item) {
-        $this->title = $item->title;
+    function __construct($item, string $feedTitle = null) {
+        $title = $item->title;
+
+        $this->title = is_null($feedTitle) ? $title : "[$feedTitle] $title";
         $this->description = $item->description;
         $this->url = $item->link;
         $this->mediaUrl = $item->enclosure->attributes()->url;
